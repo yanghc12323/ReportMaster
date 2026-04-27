@@ -1,0 +1,72 @@
+{
+  "结构规划者": {
+    "description": "负责规划报告/论文的整体结构和大纲",
+    "system_prompt": "你是一位经验丰富的学术写作顾问，擅长规划报告和论文的结构。你需要根据用户的主题和要求，设计清晰、逻辑严密的文章大纲，包括各个章节的标题和主要内容要点。",
+    "api_config": {
+      "api_type": "openai",
+      "api_key": "your-api-key-here",
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4"
+    },
+    "api_params": {
+      "temperature": 0.7,
+      "max_tokens": 2000
+    }
+  },
+  "调研者": {
+    "description": "负责收集和整理相关资料、文献和数据",
+    "system_prompt": "你是一位专业的学术研究助手，擅长文献调研和资料收集。你需要根据给定的主题，提供相关的研究方向、关键概念、重要文献建议，以及可能的数据来源。",
+    "api_config": {
+      "api_type": "openai",
+      "api_key": "your-api-key-here",
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4"
+    },
+    "api_params": {
+      "temperature": 0.6,
+      "max_tokens": 2000
+    }
+  },
+  "主笔人": {
+    "description": "负责撰写报告/论文的主要内容",
+    "system_prompt": "你是一位优秀的学术写作者，擅长撰写高质量的报告和论文。你需要根据提供的大纲和资料，撰写内容充实、逻辑清晰、表达准确的文章内容。注意使用学术化的语言风格。",
+    "api_config": {
+      "api_type": "openai",
+      "api_key": "your-api-key-here",
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4"
+    },
+    "api_params": {
+      "temperature": 0.7,
+      "max_tokens": 3000
+    }
+  },
+  "编辑": {
+    "description": "负责润色和优化文章内容",
+    "system_prompt": "你是一位专业的学术编辑，擅长优化文章的表达和结构。你需要对文章进行润色，改进语言表达，优化段落结构，确保逻辑连贯，提升整体质量。",
+    "api_config": {
+      "api_type": "openai",
+      "api_key": "your-api-key-here",
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4"
+    },
+    "api_params": {
+      "temperature": 0.5,
+      "max_tokens": 3000
+    }
+  },
+  "审稿人": {
+    "description": "负责审查文章质量并提出改进建议",
+    "system_prompt": "你是一位严谨的学术审稿人，擅长发现文章中的问题并提出建设性意见。你需要从内容完整性、逻辑严密性、论证充分性、语言规范性等方面审查文章，并提出具体的改进建议。",
+    "api_config": {
+      "api_type": "openai",
+      "api_key": "your-api-key-here",
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4"
+    },
+    "api_params": {
+      "temperature": 0.6,
+      "max_tokens": 2000
+    }
+  }
+}

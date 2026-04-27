@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Master v0.6</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>📝 Report Master</h1>
+                <p class="version">v0.6</p>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-page="workflow">
+                    <span class="icon">🚀</span>
+                    <span class="text">工作流</span>
+                </button>
+                <button class="nav-item" data-page="tutorial">
+                    <span class="icon">📖</span>
+                    <span class="text">使用教程</span>
+                </button>
+                <button class="nav-item" data-page="config">
+                    <span class="icon">⚙️</span>
+                    <span class="text">配置管理</span>
+                </button>
+                <button class="nav-item" data-page="history">
+                    <span class="icon">📊</span>
+                    <span class="text">历史记录</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="dot" id="connection-status"></span>
+                    <span class="text" id="connection-text">连接中...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 工作流页面 -->
+            <div id="workflow-page" class="page active">
+                <header class="page-header">
+                    <h2>智能写作工作流</h2>
+                    <p>让AI团队协作完成您的报告/论文</p>
+                </header>
+
+                <div class="workflow-container">
+                    <div class="input-card">
+                        <h3>📝 开始新任务</h3>
+                        <div class="form-group">
+                            <label>报告/论文主题</label>
+                            <textarea id="topic" rows="4" placeholder="例如：人工智能在教育领域的应用研究&#10;&#10;提示：主题越具体，生成的内容越有针对性"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>工作流模式</label>
+                                <select id="mode">
+                                    <option value="standard">标准模式（v0.6 推荐）</option>
+                                    <option value="quick">快速模式（策略预留）</option>
+                                    <option value="full">完整模式（策略预留）</option>
+                                </select>
+                                <small class="mode-hint">v0.6 中三种模式均采用“直到审稿接收”的迭代策略，mode 参数用于标记与后续扩展。</small>
+                            </div>
+                            <button id="start-btn" class="btn-primary">
+                                <span class="icon">▶️</span>
+                                开始生成
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="monitor-card">
+                        <div class="card-header">
+                            <h3>🤖 AI协作监控</h3>
+                            <div id="status-badge" class="badge">等待开始</div>
+                        </div>
+                        
+                        <!-- 角色状态可视化 -->
+                        <div id="roles-status" class="roles-status">
+                            <div class="role-status-item" data-role="结构规划者">
+                                <div class="role-icon">📋</div>
+                                <div class="role-info">
+                                    <div class="role-name">结构规划者</div>
+                                    <div class="role-state">待命</div>
+                                </div>
+                                <div class="role-indicator idle"></div>
+                            </div>
+                            <div class="role-status-item" data-role="调研者">
+                                <div class="role-icon">🔍</div>
+                                <div class="role-info">
+                                    <div class="role-name">调研者</div>
+                                    <div class="role-state">待命</div>
+                                </div>
+                                <div class="role-indicator idle"></div>
+                            </div>
+                            <div class="role-status-item" data-role="主笔人">
+                                <div class="role-icon">✍️</div>
+                                <div class="role-info">
+                                    <div class="role-name">主笔人</div>
+                                    <div class="role-state">待命</div>
+                                </div>
+                                <div class="role-indicator idle"></div>
+                            </div>
+                            <div class="role-status-item" data-role="编辑">
+                                <div class="role-icon">✏️</div>
+                                <div class="role-info">
+                                    <div class="role-name">编辑</div>
+                                    <div class="role-state">待命</div>
+                                </div>
+                                <div class="role-indicator idle"></div>
+                            </div>
+                            <div class="role-status-item" data-role="审稿人">
+                                <div class="role-icon">👁️</div>
+                                <div class="role-info">
+                                    <div class="role-name">审稿人</div>
+                                    <div class="role-state">待命</div>
+                                </div>
+                                <div class="role-indicator idle"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="conversation" class="conversation-area"></div>
+                    </div>
+
+                    <div class="result-card">
+                        <div class="card-header">
+                            <h3>📄 Word 页面（最终稿）</h3>
+                        </div>
+
+                        <div id="editor-panel" class="editor-panel word-panel">
+                            <div class="editor-toolbar top">
+                                <div class="editor-stage" id="editor-stage">阶段：等待工作流启动</div>
+                                <div class="result-actions">
+                                    <button id="sync-result-btn" class="btn-secondary" type="button">保存到当前稿件</button>
+                                    <button id="download-txt-btn" class="btn-secondary" type="button">
+                                        <span class="icon">⬇️</span> TXT
+                                    </button>
+                                    <button id="download-doc-btn" class="btn-secondary" type="button">
+                                        <span class="icon">⬇️</span> DOC
+                                    </button>
+                                    <button id="download-pdf-btn" class="btn-secondary" type="button">
+                                        <span class="icon">⬇️</span> PDF
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="editor-toolbar format-toolbar">
+                                <select id="font-family-select" class="editor-select">
+                                    <option value="Microsoft YaHei">微软雅黑</option>
+                                    <option value="SimSun">宋体</option>
+                                    <option value="KaiTi">楷体</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                </select>
+                                <select id="font-size-select" class="editor-select">
+                                    <option value="14">14</option>
+                                    <option value="16" selected>16</option>
+                                    <option value="18">18</option>
+                                    <option value="20">20</option>
+                                    <option value="24">24</option>
+                                </select>
+                                <button class="format-btn" type="button" data-command="bold"><strong>B</strong></button>
+                                <button class="format-btn" type="button" data-command="italic"><em>I</em></button>
+                                <button class="format-btn" type="button" data-command="underline"><u>U</u></button>
+                                <button class="format-btn" type="button" data-command="insertUnorderedList">• 列表</button>
+                                <button class="format-btn" type="button" data-command="insertOrderedList">1. 列表</button>
+                                <button class="format-btn" type="button" data-command="justifyLeft">左对齐</button>
+                                <button class="format-btn" type="button" data-command="justifyCenter">居中</button>
+                                <button class="format-btn" type="button" data-command="justifyRight">右对齐</button>
+                            </div>
+                            <div id="editor-content" class="editor-content" contenteditable="true" spellcheck="false"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 教程页面 -->
+            <div id="tutorial-page" class="page">
+                <header class="page-header">
+                    <h2>📖 使用教程</h2>
+                    <p>快速上手 Report Master</p>
+                </header>
+
+                <div class="tutorial-container">
+                    <div class="tutorial-section">
+                        <h3>🚀 快速开始</h3>
+                        <ol class="tutorial-steps">
+                            <li>
+                                <strong>配置API密钥</strong>
+                                <p>进入"配置管理"页面，为每个AI角色配置API密钥和模型。支持OpenAI、Claude、DeepSeek等。</p>
+                                <div class="code-example">
+<pre>{
+  "api_type": "openai",
+  "api_key": "sk-your-key-here",
+  "base_url": "https://api.deepseek.com",
+  "model": "deepseek-chat"
+}</pre>
+                                </div>
+                            </li>
+                            <li>
+                                <strong>输入主题</strong>
+                                <p>在工作流页面输入您的报告/论文主题，越具体越好。</p>
+                                <div class="example-box">💡 例如：人工智能在教育领域的应用研究</div>
+                            </li>
+                            <li>
+                                <strong>选择模式（v0.6）</strong>
+                                <p>v0.6 中三种模式当前采用相同主策略：持续迭代，直到审稿人给出“接收”。</p>
+                                <ul>
+                                    <li><strong>标准模式</strong>：推荐默认项，适合日常使用</li>
+                                    <li><strong>快速模式</strong>：策略位预留（当前行为与标准模式一致）</li>
+                                    <li><strong>完整模式</strong>：策略位预留（当前行为与标准模式一致）</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>开始生成</strong>
+                                <p>点击"开始生成"按钮，AI团队将协作完成您的报告。实时查看角色状态和协作过程。</p>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="tutorial-section">
+                        <h3>🤖 AI角色说明</h3>
+                        <div class="roles-intro-grid">
+                            <div class="role-intro-card">
+                                <div class="role-intro-icon">📋</div>
+                                <h4>结构规划者</h4>
+                                <p>负责规划报告的整体结构和大纲，确保逻辑清晰、层次分明。</p>
+                            </div>
+                            <div class="role-intro-card">
+                                <div class="role-intro-icon">🔍</div>
+                                <h4>调研者</h4>
+                                <p>收集相关资料、文献和数据，为写作提供充分的支撑材料。</p>
+                            </div>
+                            <div class="role-intro-card">
+                                <div class="role-intro-icon">✍️</div>
+                                <h4>主笔人</h4>
+                                <p>根据大纲和资料撰写报告主体内容，确保内容充实准确。</p>
+                            </div>
+                            <div class="role-intro-card">
+                                <div class="role-intro-icon">✏️</div>
+                                <h4>编辑</h4>
+                                <p>润色文章，优化语言表达和段落结构，提升整体质量。</p>
+                            </div>
+                            <div class="role-intro-card">
+                                <div class="role-intro-icon">👁️</div>
+                                <h4>审稿人</h4>
+                                <p>审查文章质量，从多个维度提出改进建议。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-section">
+                        <h3>💡 使用技巧</h3>
+                        <ul class="tips-list">
+                            <li>💰 <strong>节省成本</strong>：可以为不同角色配置不同的模型，如主笔人使用高级模型，其他角色使用经济模型。</li>
+                            <li>🎯 <strong>提高质量</strong>：主题描述越详细，生成的内容越有针对性。可以包含具体要求、字数、格式等。</li>
+                            <li>🔄 <strong>迭代优化</strong>：如果对结果不满意，可以修改配置或主题后重新生成。</li>
+                            <li>📝 <strong>自定义Prompt</strong>：在配置页面可以自定义每个角色的system_prompt，调整AI的行为风格。</li>
+                            <li>🌐 <strong>使用国内API</strong>：推荐使用DeepSeek等国内API，速度快且价格实惠。</li>
+                            <li>📊 <strong>实时监控</strong>：观察角色状态指示器，了解当前工作进度和可能的错误。</li>
+                        </ul>
+                    </div>
+
+                    <div class="tutorial-section">
+                        <h3>❓ 常见问题</h3>
+                        <div class="faq-list">
+                            <div class="faq-item">
+                                <strong>Q: API调用失败怎么办？</strong>
+                                <p>A: 检查API密钥是否正确，base_url是否可访问，网络连接是否正常。查看浏览器控制台（F12）和后端日志获取详细错误信息。</p>
+                            </div>
+                            <div class="faq-item">
+                                <strong>Q: 生成速度慢怎么办？</strong>
+                                <p>A: 优先检查每个角色的模型与 max_tokens 配置，必要时降低单次输出长度；也可使用响应更快的 API（如 DeepSeek）并缩小主题范围。</p>
+                            </div>
+                            <div class="faq-item">
+                                <strong>Q: 如何提高生成质量？</strong>
+                                <p>A: 建议为关键角色（主笔人/编辑/审稿人）配置更强模型，补充更具体的主题要求，并细化各角色 system_prompt。若出现输出风险提示，可适度提高 max_tokens 或拆分任务。</p>
+                            </div>
+                            <div class="faq-item">
+                                <strong>Q: 角色状态显示错误是什么意思？</strong>
+                                <p>A: 表示该角色的API调用失败。检查该角色的API配置，确保密钥、URL和模型名称正确。</p>
+                            </div>
+                            <div class="faq-item">
+                                <strong>Q: 可以只使用部分角色吗？</strong>
+                                <p>A: 当前版本需要配置所有角色。未来版本将支持自定义工作流。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 配置管理页面 -->
+            <div id="config-page" class="page">
+                <header class="page-header">
+                    <h2>配置管理</h2>
+                    <p>管理AI角色和API配置</p>
+                </header>
+
+                <div class="config-container">
+                    <div class="config-actions">
+                        <button id="save-config-btn" class="btn-primary">
+                            <span class="icon">💾</span>
+                            保存配置
+                        </button>
+                        <button id="reset-config-btn" class="btn-secondary">
+                            <span class="icon">🔄</span>
+                            重置为默认
+                        </button>
+                    </div>
+
+                    <div id="roles-config" class="roles-grid"></div>
+                </div>
+            </div>
+
+            <!-- 历史记录页面 -->
+            <div id="history-page" class="page">
+                <header class="page-header">
+                    <h2>历史记录</h2>
+                    <p>查看AI协作历史</p>
+                </header>
+
+                <div class="history-container">
+                    <div class="history-actions">
+                        <button id="clear-history-btn" class="btn-secondary">
+                            <span class="icon">🗑️</span>
+                            清空历史
+                        </button>
+                    </div>
+                    <div id="history-list" class="history-list"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast通知 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
