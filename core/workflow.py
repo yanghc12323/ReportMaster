@@ -11,10 +11,15 @@ v0.6 更新重点：
 from typing import Dict, Any, List, Tuple
 import time
 import logging
+from threading import Event
 
 from core.role_manager import RoleManager
 
 logger = logging.getLogger(__name__)
+
+
+class WorkflowCancelled(Exception):
+    """工作流被用户中止时抛出的异常。"""
 
 
 class WorkflowEngineV2:
@@ -24,7 +29,7 @@ class WorkflowEngineV2:
     MAX_TASK_CHARS = 10000
     MAX_CONTEXT_CHARS = 30000
 
-    def __init__(self, role_manager: RoleManager, socketio=None):
+    def __init__(self, role_manager: RoleManager, socketio=None, cancel_event: Event = None):
         """
         初始化工作流引擎。
 
@@ -37,6 +42,17 @@ class WorkflowEngineV2:
         self.conversation_history: List[Dict[str, Any]] = []
         self.iteration_count = 0
         self.last_output = ""
+        self.cancel_event = cancel_event
+
+    def request_stop(self):
+        """请求中止当前任务。"""
+        if self.cancel_event:
+            self.cancel_event.set()
+
+    def _check_cancelled(self):
+        """在关键节点检查是否收到中止信号。"""
+        if self.cancel_event and self.cancel_event.is_set():
+            raise WorkflowCancelled("任务已被用户中止")
 
     # ----------------------------
     # 事件推送与基础能力
@@ -130,9 +146,11 @@ class WorkflowEngineV2:
         1) 先做 task/context 长度保护
         2) 若检测到输出被截断，自动续写一次并拼接
         """
+        self._check_cancelled()
         safe_task, safe_context = self._prepare_prompt_inputs(role, task, context)
 
         output = agent.execute(safe_task, safe_context)
+        self._check_cancelled()
         self._validate_output(role, output)
 
         meta = self._get_generation_meta(agent)
@@ -152,6 +170,7 @@ class WorkflowEngineV2:
         safe_continue_task, safe_continue_context = self._prepare_prompt_inputs(role, continue_task, continue_context)
 
         continuation = agent.execute(safe_continue_task, safe_continue_context)
+        self._check_cancelled()
         self._validate_output(role, continuation)
         merged_output = f"{output.rstrip()}\n\n{continuation.lstrip()}"
 
@@ -242,7 +261,7 @@ class WorkflowEngineV2:
     # ----------------------------
     # 主流程
     # ----------------------------
-    def execute_collaborative_workflow(self, topic: str, mode: str = "standard"):
+    def execute_collaborative_workflow(self, topic: str, mode: str = "standard", corpus_text: str = ""):
         """执行协作式工作流（v0.6：无限迭代直到审稿接收）。"""
         self.iteration_count = 1
         reviewer_feedback = ""
@@ -254,12 +273,14 @@ class WorkflowEngineV2:
         self._emit_message("workflow_start", {
             "topic": topic,
             "mode": mode,
+            "corpus_chars": len(corpus_text or ""),
             "max_iterations": "unlimited",
             "loop_strategy": "until_accept"
         })
 
         try:
             while True:
+                self._check_cancelled()
                 iteration_payload = {"iteration": self.iteration_count}
                 if reviewer_feedback:
                     iteration_payload["reason"] = reviewer_feedback
@@ -268,7 +289,7 @@ class WorkflowEngineV2:
                 # 首轮 / 大修：走完整五角色链路
                 if last_decision in ("", "major_revision"):
                     # 1) 结构规划者
-                    outline = self._step_outline(topic, reviewer_feedback)
+                    outline = self._step_outline(topic, reviewer_feedback, corpus_text)
 
                     # 2) 调研者
                     research = self._step_research(outline)
@@ -311,6 +332,12 @@ class WorkflowEngineV2:
                 "review_feedback": review_result.get("feedback", "")
             })
 
+        except WorkflowCancelled as exc:
+            logger.info("工作流已中止: %s", exc)
+            self._emit_message("workflow_cancelled", {
+                "message": str(exc),
+                "iterations": self.iteration_count
+            })
         except Exception as exc:
             logger.exception("工作流执行失败")
             self._emit_message("workflow_error", {"error": str(exc)})
@@ -318,7 +345,7 @@ class WorkflowEngineV2:
     # ----------------------------
     # 各步骤实现
     # ----------------------------
-    def _step_outline(self, topic: str, feedback: str = "") -> str:
+    def _step_outline(self, topic: str, feedback: str = "", corpus_text: str = "") -> str:
         """步骤1：结构规划。"""
         role_name = "结构规划者"
         self._emit_message("step_start", {"step": "outline", "role": role_name})
@@ -326,6 +353,8 @@ class WorkflowEngineV2:
 
         planner = self.role_manager.get_agent(role_name)
         task = f"请为以下主题设计详细、可落地的文章大纲：\n{topic}"
+        if corpus_text.strip():
+            task += f"\n\n以下是用户提供的语料，请优先吸收其中信息并在大纲中体现：\n{corpus_text}"
         if feedback:
             task += f"\n\n审稿人反馈如下，请据此重构大纲：\n{feedback}"
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report Master v0.6</title>
+    <title>Report Master v0.7</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,8 +11,8 @@
         <!-- 侧边栏 -->
         <aside class="sidebar">
             <div class="logo">
-                <h1>📝 Report Master</h1>
-                <p class="version">v0.6</p>
+                <h1>Report Master</h1>
+                <p class="version">v0.7</p>
             </div>
             
             <nav class="nav-menu">
@@ -48,15 +48,21 @@
             <div id="workflow-page" class="page active">
                 <header class="page-header">
                     <h2>智能写作工作流</h2>
-                    <p>让AI团队协作完成您的报告/论文</p>
+                    <p>科研写作协作工具（简洁版）</p>
                 </header>
 
                 <div class="workflow-container">
                     <div class="input-card">
-                        <h3>📝 开始新任务</h3>
+                        <h3>开始新任务</h3>
                         <div class="form-group">
                             <label>报告/论文主题</label>
                             <textarea id="topic" rows="4" placeholder="例如：人工智能在教育领域的应用研究&#10;&#10;提示：主题越具体，生成的内容越有针对性"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="corpus-files">补充语料（可选）</label>
+                            <input id="corpus-files" type="file" multiple accept=".pdf,.doc,.docx,.png">
+                            <small class="mode-hint">支持上传 PDF / Word(doc、docx) / PNG，上传后将自动提取文本作为 AI 参考语料。</small>
+                            <div id="corpus-upload-status" class="upload-status">尚未上传语料</div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
@@ -69,15 +75,15 @@
                                 <small class="mode-hint">v0.6 中三种模式均采用“直到审稿接收”的迭代策略，mode 参数用于标记与后续扩展。</small>
                             </div>
                             <button id="start-btn" class="btn-primary">
-                                <span class="icon">▶️</span>
                                 开始生成
                             </button>
+                            <button id="stop-btn" class="btn-danger" type="button" disabled>中止任务</button>
                         </div>
                     </div>
 
                     <div class="monitor-card">
                         <div class="card-header">
-                            <h3>🤖 AI协作监控</h3>
+                            <h3>AI 协作监控</h3>
                             <div id="status-badge" class="badge">等待开始</div>
                         </div>
                         
@@ -130,7 +136,7 @@
 
                     <div class="result-card">
                         <div class="card-header">
-                            <h3>📄 Word 页面（最终稿）</h3>
+                            <h3>Word 页面（最终稿）</h3>
                         </div>
 
                         <div id="editor-panel" class="editor-panel word-panel">
@@ -138,15 +144,9 @@
                                 <div class="editor-stage" id="editor-stage">阶段：等待工作流启动</div>
                                 <div class="result-actions">
                                     <button id="sync-result-btn" class="btn-secondary" type="button">保存到当前稿件</button>
-                                    <button id="download-txt-btn" class="btn-secondary" type="button">
-                                        <span class="icon">⬇️</span> TXT
-                                    </button>
-                                    <button id="download-doc-btn" class="btn-secondary" type="button">
-                                        <span class="icon">⬇️</span> DOC
-                                    </button>
-                                    <button id="download-pdf-btn" class="btn-secondary" type="button">
-                                        <span class="icon">⬇️</span> PDF
-                                    </button>
+                                    <button id="download-txt-btn" class="btn-secondary" type="button">TXT</button>
+                                    <button id="download-doc-btn" class="btn-secondary" type="button">DOC</button>
+                                    <button id="download-pdf-btn" class="btn-secondary" type="button">PDF</button>
                                 </div>
                             </div>
 
@@ -174,7 +174,9 @@
                                 <button class="format-btn" type="button" data-command="justifyCenter">居中</button>
                                 <button class="format-btn" type="button" data-command="justifyRight">右对齐</button>
                             </div>
-                            <div id="editor-content" class="editor-content" contenteditable="true" spellcheck="false"></div>
+                            <div class="a4-canvas">
+                                <div id="editor-content" class="editor-content" contenteditable="true" spellcheck="false"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

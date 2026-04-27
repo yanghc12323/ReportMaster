@@ -1,38 +1,54 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
-title Report Master v0.6
+cd /d "%~dp0"
+title Report Master v0.7
 
 echo.
 echo ========================================
-echo   Report Master v0.6 启动脚本
+echo   Report Master v0.7 启动脚本
 echo ========================================
 echo.
 
 echo [1/2] 检查Python环境...
 set "PYTHON_CMD="
 
-rem 先尝试当前 python 命令
-call :check_python "python"
-if !errorlevel! EQU 0 (
-    set "PYTHON_CMD=python"
+rem 优先使用项目虚拟环境，避免与系统 Python 冲突
+if exist "%~dp0.venv\Scripts\python.exe" (
+    call :check_python "%~dp0.venv\Scripts\python.exe"
+    if !errorlevel! EQU 0 (
+        set "PYTHON_CMD=%~dp0.venv\Scripts\python.exe"
+    )
 )
 
-rem 若当前 python 不可用或版本不符合，再扫描 where python 的候选解释器
+rem 再尝试当前 python 命令
+if not defined PYTHON_CMD (
+    call :check_python "python"
+    if !errorlevel! EQU 0 (
+        set "PYTHON_CMD=python"
+    )
+)
+
+rem 若当前 python 不可用或依赖缺失，再扫描 where python 的候选解释器
 if not defined PYTHON_CMD (
     for /f "delims=" %%p in ('where python 2^>nul') do (
         if not defined PYTHON_CMD (
-            call :check_python "%%p"
-            if !errorlevel! EQU 0 (
-                set "PYTHON_CMD=%%p"
+            rem 忽略 Microsoft Store 代理解释器
+            echo %%p | find /I "WindowsApps" >nul
+            if errorlevel 1 (
+                call :check_python "%%p"
+                if !errorlevel! EQU 0 (
+                    set "PYTHON_CMD=%%p"
+                )
             )
         )
     )
 )
 
 if not defined PYTHON_CMD (
-    echo ❌ 未检测到 Python 3.8+ 解释器
-    echo 请安装 Python 3.8+，并确保其可通过 PATH 访问
+    echo [ERROR] 未检测到可用的 Python 3.8+ 解释器
+    echo 需要模块: flask / flask_socketio / flask_cors
+    echo 请在目标解释器中执行：python -m pip install -r requirements.txt
     echo 你也可以手动运行：^<Python3路径^> backend\app.py
     pause
     exit /b 1
@@ -48,14 +64,15 @@ if /i "%~1"=="--check" (
 
 echo [2/2] 启动应用...
 echo 后端服务将在 http://localhost:5000 启动
-echo 浏览器将自动打开应用界面
-echo 当前版本：v0.6（审稿接收前持续迭代）
+echo 浏览器将在服务就绪后自动打开应用界面
+echo 当前版本：v0.7（审稿接收前持续迭代）
 echo.
 echo 提示：关闭此窗口将停止服务
 echo ========================================
 echo.
 
-start http://localhost:5000
+rem 等待健康检查可用后再打开浏览器，避免 localhost 拒绝连接
+start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "$url='http://localhost:5000/api/health'; for($i=0;$i -lt 90;$i++){ try { $res=Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2; if($res.StatusCode -ge 200){ Start-Process 'http://localhost:5000'; exit 0 } } catch {} Start-Sleep -Seconds 1 }; Write-Host '[提示] 服务启动较慢，请稍后手动访问 http://localhost:5000'"
 "%PYTHON_CMD%" backend\app.py
 exit /b %errorlevel%
 

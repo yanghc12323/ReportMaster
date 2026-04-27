@@ -870,3 +870,352 @@ pre.message-content {
     font-size: 14px;
     line-height: 1.6;
 }
+
+/* ========================================
+   v0.7 极简科研风（黑白灰）视觉覆盖层
+   说明：通过后置覆盖，避免大范围改动旧样式
+======================================== */
+:root {
+    --primary: #111111;
+    --primary-dark: #000000;
+    --secondary: #2f2f2f;
+    --danger: #1f1f1f;
+    --warning: #4b5563;
+    --bg-main: #f5f5f5;
+    --bg-card: #ffffff;
+    --text-primary: #111111;
+    --text-secondary: #5f5f5f;
+    --border: #dddddd;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.08);
+    --radius: 10px;
+}
+
+body {
+    background: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.sidebar {
+    background: #111;
+    color: #fff;
+    box-shadow: none;
+    border-right: 1px solid #2a2a2a;
+}
+
+.logo {
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.nav-item {
+    color: #f3f3f3;
+    border-left: 2px solid transparent;
+}
+
+.nav-item:hover {
+    background: #1e1e1e;
+}
+
+.nav-item.active {
+    background: #1a1a1a;
+    border-left-color: #f5f5f5;
+}
+
+.sidebar-footer {
+    border-top: 1px solid #2a2a2a;
+}
+
+.status-indicator .dot {
+    background: #8a8a8a;
+}
+
+.status-indicator .dot.connected {
+    background: #f5f5f5;
+}
+
+.page-header h2 {
+    letter-spacing: 0.2px;
+}
+
+.page-header p,
+.mode-hint {
+    color: var(--text-secondary);
+}
+
+.input-card,
+.monitor-card,
+.result-card,
+.role-card,
+.tutorial-section,
+.history-item {
+    border: 1px solid var(--border);
+    box-shadow: none;
+}
+
+.form-group textarea,
+.form-group select,
+.form-group input {
+    border: 1px solid var(--border);
+    background: #fff;
+}
+
+.form-group textarea:focus,
+.form-group select:focus,
+.form-group input:focus {
+    border-color: #222;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.btn-primary {
+    background: #111;
+    color: #fff;
+    border: 1px solid #111;
+}
+
+.btn-primary:hover {
+    background: #000;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background: #fff;
+    color: #111;
+    border: 1px solid #cfcfcf;
+}
+
+.btn-secondary:hover {
+    border-color: #111;
+}
+
+.btn-danger {
+    padding: 12px 24px;
+    background: #fff;
+    color: #111;
+    border: 1px solid #111;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: #111;
+    color: #fff;
+}
+
+.btn-danger:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.badge {
+    border: 1px solid #d8d8d8;
+    background: #f2f2f2;
+    color: #444;
+}
+
+.badge.working {
+    background: #efefef;
+    color: #222;
+}
+
+.badge.success {
+    background: #ededed;
+    color: #111;
+}
+
+.badge.error {
+    background: #f0f0f0;
+    color: #111;
+}
+
+.conversation-area {
+    border: 1px solid #e0e0e0;
+    background: #f8f8f8;
+}
+
+.message-item {
+    border-left: 3px solid #222;
+    box-shadow: none;
+}
+
+.message-item.system-message {
+    border-left-color: #666;
+    background: #f5f5f5;
+}
+
+.message-from,
+.role-card h4,
+.history-item strong,
+.tutorial-section h3,
+.faq-item strong {
+    color: #111;
+}
+
+.roles-status {
+    background: #f8f8f8;
+    border: 1px solid #e2e2e2;
+}
+
+.role-status-item {
+    border: 1px solid #dedede;
+}
+
+.role-status-item:hover,
+.role-intro-card:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #bdbdbd;
+}
+
+.role-indicator.idle {
+    background: #888;
+}
+
+.role-indicator.working {
+    background: #444;
+}
+
+.role-indicator.completed {
+    background: #111;
+}
+
+.role-indicator.error {
+    background: #222;
+}
+
+/* Word 页面（最终稿）优化 */
+.word-panel {
+    border: 1px solid #dcdcdc;
+    background: #f3f3f3;
+    padding: 12px;
+}
+
+.editor-toolbar {
+    gap: 8px;
+}
+
+.editor-toolbar.top {
+    background: #fff;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.format-toolbar {
+    background: #fff;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.editor-select {
+    min-width: 110px;
+    height: 34px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    background: #fff;
+    color: #111;
+    padding: 0 10px;
+}
+
+.format-btn {
+    height: 34px;
+    min-width: 34px;
+    padding: 0 10px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    background: #fff;
+    color: #111;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.format-btn:hover {
+    border-color: #111;
+    background: #f5f5f5;
+}
+
+.a4-canvas {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #ececec;
+    border: 1px solid #d7d7d7;
+    border-radius: 8px;
+    padding: 16px;
+    overflow: auto;
+}
+
+.editor-content {
+    width: 210mm;
+    min-height: 297mm;
+    max-height: none;
+    border: 1px solid #d8d8d8;
+    border-radius: 2px;
+    background: #fff;
+    padding: 20mm;
+    line-height: 1.9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.editor-content:focus {
+    outline: 2px solid rgba(0, 0, 0, 0.08);
+    border-color: #a8a8a8;
+}
+
+.upload-status {
+    margin-top: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid #d8d8d8;
+    background: #f7f7f7;
+    color: #555;
+}
+
+.upload-status.working {
+    background: #f1f1f1;
+    color: #333;
+    border-color: #cfcfcf;
+}
+
+.upload-status.success {
+    background: #ededed;
+    color: #111;
+    border-color: #c7c7c7;
+}
+
+.upload-status.error {
+    background: #f1f1f1;
+    color: #222;
+    border-color: #bfbfbf;
+}
+
+.toast {
+    background: #111;
+    color: #fff;
+}
+
+.toast.success,
+.toast.error,
+.toast.warning {
+    background: #111;
+    color: #fff;
+}
+
+@media (max-width: 1200px) {
+    .editor-content {
+        width: 100%;
+        min-height: 520px;
+        padding: 24px;
+    }
+}

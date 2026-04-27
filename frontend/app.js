@@ -1,5 +1,5 @@
-// Report Master v0.6 - 前端主逻辑
-// 重点：无限迭代直至审稿接收、Word 页面编辑、DOC/PDF/TXT 导出、输出风险提示
+// Report Master v0.7 - 前端主逻辑
+// 重点：语料上传、任务可中止、A4 导出、简洁界面体验
 
 const API_BASE = window.location.origin;
 const STORAGE_CONFIG_KEY = 'reportmaster_config';
@@ -11,6 +11,7 @@ let socket = null;
 let currentConfig = null;
 let latestResultText = '';
 let workflowRunning = false;
+let uploadedCorpusText = '';
 
 const DEFAULT_CONFIG = {
     '结构规划者': {
@@ -92,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEventListeners();
     initSocket();
     initWordEditorControls();
+    setWorkflowButtonState(false);
 });
 
 // ----------------------------
@@ -180,6 +182,7 @@ function initSocket() {
 
     socket.on('workflow_start', data => {
         workflowRunning = true;
+        setWorkflowButtonState(true);
         const loopText = data.max_iterations === 'unlimited'
             ? '无限迭代，直到审稿接收'
             : `最多${data.max_iterations || '-'}轮`;
@@ -234,6 +237,7 @@ function initSocket() {
 
     socket.on('workflow_complete', data => {
         workflowRunning = false;
+        setWorkflowButtonState(false);
 
         const result = normalizeText(data.result || data.final_content);
         if (!result.trim()) {
@@ -255,9 +259,19 @@ function initSocket() {
 
     socket.on('workflow_error', data => {
         workflowRunning = false;
+        setWorkflowButtonState(false);
         updateStatus('error', '错误');
         addSystemMessage(`工作流错误：${data.error || '未知错误'}`);
         showToast(`错误：${data.error || '未知错误'}`, 'error');
+    });
+
+    socket.on('workflow_cancelled', data => {
+        workflowRunning = false;
+        setWorkflowButtonState(false);
+        updateStatus('error', '已中止');
+        addSystemMessage(`工作流已中止：${normalizeText(data?.message || '任务已被手动中止')}`);
+        setEditorStage('阶段：任务已中止');
+        showToast('任务已中止', 'warning');
     });
 
     socket.on('role_status', data => {
@@ -433,14 +447,63 @@ function escapeAttr(text) {
 // ----------------------------
 function initEventListeners() {
     document.getElementById('start-btn')?.addEventListener('click', startWorkflow);
+    document.getElementById('stop-btn')?.addEventListener('click', stopWorkflow);
     document.getElementById('download-txt-btn')?.addEventListener('click', downloadAsTxt);
     document.getElementById('download-doc-btn')?.addEventListener('click', downloadAsDoc);
     document.getElementById('download-pdf-btn')?.addEventListener('click', downloadAsPdf);
     document.getElementById('save-config-btn')?.addEventListener('click', saveConfig);
     document.getElementById('reset-config-btn')?.addEventListener('click', resetConfig);
     document.getElementById('clear-history-btn')?.addEventListener('click', clearHistory);
+    document.getElementById('corpus-files')?.addEventListener('change', uploadCorpusFiles);
 
     document.getElementById('sync-result-btn')?.addEventListener('click', syncEditorToResult);
+}
+
+function setWorkflowButtonState(isRunning) {
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    if (startBtn) startBtn.disabled = !!isRunning;
+    if (stopBtn) stopBtn.disabled = !isRunning;
+}
+
+function updateCorpusStatus(text, type = 'neutral') {
+    const node = document.getElementById('corpus-upload-status');
+    if (!node) return;
+    node.textContent = text;
+    node.className = `upload-status ${type}`;
+}
+
+async function uploadCorpusFiles(event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) {
+        uploadedCorpusText = '';
+        updateCorpusStatus('尚未上传语料');
+        return;
+    }
+
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    updateCorpusStatus('语料上传中...', 'working');
+
+    try {
+        const response = await fetch(`${API_BASE}/api/corpus/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.error || '上传失败');
+        }
+
+        uploadedCorpusText = normalizeText(payload.corpus_text);
+        updateCorpusStatus(`已上传 ${payload.files.length} 个文件，语料 ${payload.corpus_chars} 字`, 'success');
+        showToast('语料上传成功', 'success');
+    } catch (error) {
+        uploadedCorpusText = '';
+        updateCorpusStatus(`上传失败：${error.message}`, 'error');
+        showToast(`语料上传失败：${error.message}`, 'error');
+    }
 }
 
 async function startWorkflow() {
@@ -461,6 +524,7 @@ async function startWorkflow() {
 
     // 重置界面状态
     workflowRunning = true;
+    setWorkflowButtonState(true);
     latestResultText = '';
     resetAllRoleStatus();
     clearConversation();
@@ -475,6 +539,7 @@ async function startWorkflow() {
             body: JSON.stringify({
                 topic,
                 mode,
+                corpus_text: uploadedCorpusText,
                 config: currentConfig
             })
         });
@@ -487,8 +552,29 @@ async function startWorkflow() {
         showToast('工作流已启动', 'success');
     } catch (error) {
         workflowRunning = false;
+        setWorkflowButtonState(false);
         updateStatus('error', '错误');
         showToast(`启动失败：${error.message}`, 'error');
+    }
+}
+
+async function stopWorkflow() {
+    if (!workflowRunning) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/stop_workflow`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.error || '中止失败');
+        }
+
+        showToast('已发送中止指令', 'warning');
+    } catch (error) {
+        showToast(`中止失败：${error.message}`, 'error');
     }
 }
 
@@ -635,12 +721,16 @@ function downloadAsDoc() {
 <head>
     <meta charset="UTF-8">
     <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
         body {
             font-family: ${fontFamily};
             font-size: ${fontSize}px;
             line-height: 1.8;
             color: #222;
-            margin: 28px;
+            margin: 0;
         }
     </style>
 </head>
@@ -667,8 +757,9 @@ async function downloadAsPdf() {
     const editor = getEditorElement();
     const container = document.createElement('div');
     container.style.background = '#fff';
-    container.style.padding = '16px';
+    container.style.padding = '0';
     container.style.width = '210mm';
+    container.style.minHeight = '297mm';
 
     const printable = editor ? editor.cloneNode(true) : document.createElement('div');
     if (!editor) {
@@ -679,11 +770,15 @@ async function downloadAsPdf() {
     printable.style.boxShadow = 'none';
     printable.style.border = 'none';
     printable.style.margin = '0 auto';
+    printable.style.padding = '20mm';
+    printable.style.width = '210mm';
+    printable.style.minHeight = '297mm';
+    printable.style.boxSizing = 'border-box';
     container.appendChild(printable);
 
     try {
         await html2pdf().set({
-            margin: [8, 8, 8, 8],
+            margin: [0, 0, 0, 0],
             filename: `report_${Date.now()}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
